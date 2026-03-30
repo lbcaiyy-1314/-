@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>经营目标看板</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+    background: #e8edf4;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .dashboard {
+    width: 980px;
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  }
+
+  /* ===== 顶部标题栏 ===== */
+  .header {
+    background: #1a3a6e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 14px 22px;
+    gap: 16px;
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .logo-upload-box {
+    width: 180px; height: 72px;
+    border: 2px dashed rgba(255,255,255,0.4);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    overflow: hidden;
+  }
+  .logo-upload-box:hover {
+    border-color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.08);
+  }
+  .logo-upload-box.has-logo {
+    border: none;
+    background: transparent;
+  }
+  .logo-upload-box.has-logo:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .logo-upload-hint {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #8fb3e8; font-size: 12px; pointer-events: none;
+  }
+  .header-title-area { flex: 1; text-align: center; }
+  .header-title { font-size: 34px; font-weight: bold; letter-spacing: 4px; }
+  .header-subtitle { font-size: 17px; color: #aac4f0; margin-top: 6px; letter-spacing: 1px; }
+
+  /* ===== 汇总数据行 ===== */
+  .summary-row { display: flex; border-bottom: 2px solid #e0e0e0; }
+  .summary-cell {
+    flex: 1; padding: 18px 20px 15px;
+    border-right: 1px solid #e0e0e0;
+  }
+  .summary-cell:last-child { border-right: none; }
+  .summary-value { font-size: 28px; font-weight: bold; color: #1a6bbf; line-height: 1.2; }
+  .summary-value.orange { color: #e05c00; }
+  .summary-label { font-size: 15px; color: #888; margin-top: 5px; }
+
+  /* ===== 项目卡片 ===== */
+  .project-card { border-bottom: 1px solid #e8e8e8; }
+  .project-card:last-of-type { border-bottom: none; }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px 8px;
+    border-left: 5px solid #1a6bbf;
+  }
+  .card-header.orange { border-left-color: #e07b00; }
+  .card-header.green  { border-left-color: #2e8b57; }
+
+  .project-name { font-size: 26px; font-weight: bold; color: #222; }
+  .rate-group { text-align: right; }
+  .completion-rate { font-size: 48px; font-weight: bold; color: #e05c00; line-height: 1; }
+  .completion-rate.green-rate { color: #2e8b57; }
+  .completion-label { font-size: 15px; color: #888; }
+
+  /* 进度条 */
+  .progress-bar-wrap { padding: 4px 22px 6px; }
+  .progress-bar-bg {
+    background: #e0e0e0; border-radius: 5px; height: 18px;
+    width: 100%; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 4px; background: #1a6bbf;
+    transition: width 0.3s ease;
+  }
+  .progress-bar-fill.orange { background: #e07b00; }
+  .progress-bar-fill.green  { background: #2e8b57; }
+
+  /* 进度滑块 */
+  .slider-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 2px 22px 8px;
+  }
+  .slider-row label { font-size: 13px; color: #bbb; white-space: nowrap; }
+  .slider-row input[type=range] {
+    flex: 1; height: 4px; cursor: pointer;
+    accent-color: #1a6bbf;
+  }
+  .slider-row input[type=range].orange { accent-color: #e07b00; }
+  .slider-row input[type=range].green  { accent-color: #2e8b57; }
+  .slider-val { font-size: 14px; color: #888; min-width: 42px; }
+
+  /* 指标网格 */
+  .metrics-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    padding: 10px 22px 12px; gap: 16px 0;
+  }
+  .metric-label { font-size: 19px; color: #999; }
+  .metric-value { font-size: 20px; font-weight: bold; color: #222; margin-top: 3px; }
+  .metric-value.blue   { color: #1a6bbf; }
+  .metric-value.orange { color: #e07b00; }
+  .metric-value.green  { color: #2e8b57; }
+  .metric-value.red    { color: #e05c00; }
+  /* 计划 vs 实际拆分格 */
+  .metric-item.vs-item { grid-column: span 2; }
+  .vs-row {
+    display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap;
+  }
+  .vs-val {
+    font-size: 20px; font-weight: bold; color: #222;
+    min-width: 60px; outline: none;
+    border-bottom: 1px dashed rgba(0,0,0,0.15);
+    cursor: ns-resize;
+  }
+  .vs-val:focus { border-bottom-color: #1a6bbf; background: rgba(26,107,191,0.06); border-radius: 3px; }
+  .vs-val.green { color: #2e8b57; }
+  .vs-val.red   { color: #e05c00; }
+  .vs-sep {
+    font-size: 18px; font-weight: bold; color: #aaa; user-select: none; flex-shrink: 0;
+  }
+  .vs-sep.gt { color: #e05c00; }
+  .vs-sep.lt { color: #2e8b57; }
+  .vs-sep.eq { color: #888; }
+
+  /* 备注行 */
+  .remark-row {
+    margin: 4px 22px 16px; padding: 10px 16px;
+    border-radius: 4px; font-size: 16px;
+  }
+  .remark-row.unreach { background: #f5f5f5; color: #555; border-left: 3px solid #ccc; }
+  .remark-row.reached { background: #eaf6ee; color: #2e8b57; border-left: 3px solid #2e8b57; font-weight: bold; }
+
+  /* ===== 风险提示 ===== */
+  .risk-section {
+    background: #fff8f0; border-top: 2px solid #e8e8e8;
+    padding: 14px 22px 18px;
+  }
+  .risk-title { font-size: 18px; font-weight: bold; color: #c04000; margin-bottom: 10px; }
+  .risk-item {
+    font-size: 16px; color: #444; line-height: 2.0;
+    padding-left: 16px; position: relative;
+  }
+  .risk-item::before { content: ">"; position: absolute; left: 0; color: #aaa; }
+  .risk-item.red  { color: #c04000; }
+  .risk-item.green-text { color: #2e8b57; }
+
+  /* ===== 可编辑区域样式 ===== */
+  [contenteditable="true"] {
+    outline: none; border-radius: 2px; cursor: text;
+    min-width: 10px; display: inline-block;
+  }
+  [contenteditable="true"]:hover  { background: rgba(26,107,191,0.07); }
+  [contenteditable="true"]:focus  {
+    background: rgba(26,107,191,0.12);
+    box-shadow: 0 0 0 1.5px #1a6bbf66;
+  }
+
+  /* ===== 工具栏 ===== */
+  .toolbar {
+    background: #243f72; padding: 8px 22px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; color: #8fb3e8;
+  }
+  .toolbar .tb-badge {
+    background: #e07b00; color: #fff; border-radius: 3px;
+    padding: 2px 9px; font-size: 13px; font-weight: bold;
+  }
+  .toolbar-tip { margin-left: auto; font-size: 13px; opacity: 0.65; }
+
+  /* 项目标题行增加删除按钮 */
+  .card-actions {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .btn-small {
+    border: none; border-radius: 3px; padding: 3px 11px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .btn-del { background: #fce8e8; color: #c04000; }
+  .btn-del:hover { background: #f8c8c8; }
+  .btn-add {
+    background: #e8f3ff; color: #1a6bbf;
+    margin: 8px 22px 12px; font-size: 15px; padding: 7px 18px;
+    border: 1px dashed #1a6bbf; border-radius: 4px; cursor: pointer;
+    display: block; width: calc(100% - 44px); text-align: center;
+    font-family: inherit;
+  }
+  .btn-add:hover { background: #d0e8ff; }
+</style>
+</head>
+<body>
+<div class="dashboard" id="dashboard">
+
+  <!-- 工具提示栏 -->
+  <div class="toolbar">
+    <span class="tb-badge">编辑模式</span>
+    点击任意文字即可修改数据 &nbsp;·&nbsp; 拖动滑块调整进度
+    <span class="toolbar-tip">所有字段均可自由编辑</span>
+  </div>
+
+  <!-- ===== 标题头部 ===== -->
+  <div class="header">
+    <!-- Logo上传区域 -->
+    <div class="logo-area">
+      <div class="logo-upload-box" id="logoBox" onclick="document.getElementById('logoInput').click()" title="点击上传Logo">
+        <div class="logo-upload-hint" id="logoHint">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8fb3e8" stroke-width="1.8" stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+          <span>上传Logo</span>
+        </div>
+        <img id="logoImg" src="" alt="logo" style="display:none; width:100%; height:100%; object-fit:contain; border-radius:4px;"/>
+      </div>
+      <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="loadLogo(event)"/>
+    </div>
+    <div class="header-title-area">
+      <div class="header-title" contenteditable="true">湖北恒德 经营目标看板</div>
+      <div class="header-subtitle" contenteditable="true">2026/03/29 &nbsp;|&nbsp; 3月进度 94% &nbsp;|&nbsp; 剩余 2 天</div>
+    </div>
+  </div>
+
+  <!-- ===== 汇总数据行 ===== -->
+  <div class="summary-row" id="summary-row">
+    <div class="summary-cell">
+      <div class="summary-value" contenteditable="true">13,260,000m³</div>
+      <div class="summary-label" contenteditable="true">月度总目标</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-value" contenteditable="true">9,288,885m³</div>
+      <div class="summary-label" contenteditable="true">累计总结算</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-value orange" contenteditable="true">70%</div>
+      <div class="summary-label" contenteditable="true">综合完成率</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-value orange" contenteditable="true">2 天</div>
+      <div class="summary-label" contenteditable="true">剩余天数</div>
+    </div>
+  </div>
+
+  <!-- ===== 项目卡片区域 ===== -->
+  <div id="cards-container">
+
+    <!-- 项目1：蓝色 -->
+    <div class="project-card" data-color="blue">
+      <div class="card-header" style="border-left-color:#1a6bbf">
+        <div class="project-name" contenteditable="true">临县恒丰</div>
+        <div class="card-actions">
+          <button class="btn-small btn-del" onclick="removeCard(this)">删除项目</button>
+          <div class="rate-group">
+            <div class="completion-rate" style="color:#e05c00" contenteditable="true"
+              oninput="syncSlider(this)">71%</div>
+            <div class="completion-label">完成率</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:71%;background:#1a6bbf"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <label>进度条</label>
+        <input type="range" min="0" max="150" value="71"
+          oninput="updateProgress(this)">
+        <span class="slider-val">71%</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">月目标</div>
+          <div class="metric-value" contenteditable="true">8,500,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">累计结算</div>
+          <div class="metric-value blue" contenteditable="true">5,994,736m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">日均结算</div>
+          <div class="metric-value" contenteditable="true">206,715m³</div>
+        </div>
+        <div class="metric-item vs-item">
+          <div class="metric-label" contenteditable="true">3.29 计划 vs 实际</div>
+          <div class="vs-row">
+            <span class="vs-val red" contenteditable="true" data-unit="m³">150,000</span>
+            <span class="vs-sep gt" id="vs-sep-1">＞</span>
+            <span class="vs-val red" contenteditable="true" data-unit="m³">121,281</span>
+            <span class="vs-unit" style="font-size:16px;color:#aaa;">m³</span>
+          </div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">3.30 计划量</div>
+          <div class="metric-value" contenteditable="true">130,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">达标需日均</div>
+          <div class="metric-value red" contenteditable="true">1,252,632m³ (6.1x)</div>
+        </div>
+      </div>
+      <div class="remark-row unreach" contenteditable="true">未达标原因：车辆调度问题, 槽车未按时间到达现场</div>
+    </div>
+
+    <!-- 项目2：橙色 -->
+    <div class="project-card" data-color="orange">
+      <div class="card-header orange">
+        <div class="project-name" contenteditable="true">大宁恒德</div>
+        <div class="card-actions">
+          <button class="btn-small btn-del" onclick="removeCard(this)">删除项目</button>
+          <div class="rate-group">
+            <div class="completion-rate" style="color:#e05c00" contenteditable="true"
+              oninput="syncSlider(this)">67%</div>
+            <div class="completion-label">完成率</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill orange" style="width:67%"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <label>进度条</label>
+        <input type="range" min="0" max="150" value="67" class="orange"
+          oninput="updateProgress(this)">
+        <span class="slider-val">67%</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">月目标</div>
+          <div class="metric-value" contenteditable="true">4,500,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">累计结算</div>
+          <div class="metric-value orange" contenteditable="true">2,997,996m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">日均结算</div>
+          <div class="metric-value" contenteditable="true">103,379m³</div>
+        </div>
+        <div class="metric-item vs-item">
+          <div class="metric-label" contenteditable="true">3.29 计划 vs 实际</div>
+          <div class="vs-row">
+            <span class="vs-val green" contenteditable="true" data-unit="m³">70,000</span>
+            <span class="vs-sep lt" id="vs-sep-2">＜</span>
+            <span class="vs-val green" contenteditable="true" data-unit="m³">70,337</span>
+            <span class="vs-unit" style="font-size:16px;color:#aaa;">m³</span>
+          </div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">3.30 计划量</div>
+          <div class="metric-value" contenteditable="true">80,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">达标需日均</div>
+          <div class="metric-value red" contenteditable="true">751,002m³ (7.3x)</div>
+        </div>
+      </div>
+      <div class="remark-row reached" contenteditable="true">✓ 3.29当日达标</div>
+    </div>
+
+    <!-- 项目3：绿色 -->
+    <div class="project-card" data-color="green">
+      <div class="card-header green">
+        <div class="project-name" contenteditable="true">重庆鹏奥(含管道气)</div>
+        <div class="card-actions">
+          <button class="btn-small btn-del" onclick="removeCard(this)">删除项目</button>
+          <div class="rate-group">
+            <div class="completion-rate green-rate" contenteditable="true"
+              oninput="syncSlider(this)">114%</div>
+            <div class="completion-label">完成率</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill green" style="width:100%"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <label>进度条</label>
+        <input type="range" min="0" max="150" value="114" class="green"
+          oninput="updateProgress(this)">
+        <span class="slider-val">114%</span>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">月目标</div>
+          <div class="metric-value" contenteditable="true">260,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">累计结算</div>
+          <div class="metric-value green" contenteditable="true">296,153m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">日均结算</div>
+          <div class="metric-value" contenteditable="true">10,212m³</div>
+        </div>
+        <div class="metric-item vs-item">
+          <div class="metric-label" contenteditable="true">3.29 计划 vs 实际</div>
+          <div class="vs-row">
+            <span class="vs-val red" contenteditable="true" data-unit="m³">10,000</span>
+            <span class="vs-sep gt" id="vs-sep-3">＞</span>
+            <span class="vs-val red" contenteditable="true" data-unit="m³">9,760</span>
+            <span class="vs-unit" style="font-size:16px;color:#aaa;">m³</span>
+          </div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">3.30 计划量</div>
+          <div class="metric-value" contenteditable="true">10,000m³</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label" contenteditable="true">达标需日均</div>
+          <div class="metric-value green" contenteditable="true">已达标</div>
+        </div>
+      </div>
+      <div class="remark-row reached" contenteditable="true">✓ 月度已超额完成</div>
+    </div>
+
+  </div><!-- end cards-container -->
+
+  <!-- 新增项目按钮 -->
+  <button class="btn-add" onclick="addCard()">＋ 新增项目</button>
+
+  <!-- ===== 风险提示 ===== -->
+  <div class="risk-section">
+    <div class="risk-title" contenteditable="true">[!] 风险提示</div>
+    <div id="risk-list">
+      <div class="risk-item red" contenteditable="true">临县恒丰完成率 71%, 剩余2天需日均 1,252,632m³（当前日均的 6.1 倍），达标极为困难</div>
+      <div class="risk-item red" contenteditable="true">大宁恒德完成率 67%, 剩余需日均 751,002m³（当前日均的 7.3 倍），面临极大压力</div>
+      <div class="risk-item green-text" contenteditable="true">重庆鹏奥已超额完成 114%，表现优异，维持当前水平即可</div>
+    </div>
+    <button class="btn-add" style="margin-top:8px" onclick="addRiskItem()">＋ 新增风险提示</button>
+  </div>
+
+</div><!-- end .dashboard -->
+
+<script>
+/* ===== Logo上传 ===== */
+function loadLogo(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('logoImg');
+    var hint = document.getElementById('logoHint');
+    var box = document.getElementById('logoBox');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    hint.style.display = 'none';
+    box.classList.add('has-logo');
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ===== 进度条滑块联动 ===== */
+function updateProgress(slider) {
+  var card = slider.closest('.project-card');
+  var val = parseFloat(slider.value);
+  // 更新进度条宽度（最大显示100%）
+  var bar = card.querySelector('.progress-bar-fill');
+  bar.style.width = Math.min(val, 100) + '%';
+  // 更新滑块旁数值
+  slider.nextElementSibling.textContent = val + '%';
+  // 同步完成率文字
+  var rateEl = card.querySelector('.completion-rate');
+  rateEl.textContent = val + '%';
+}
+
+/* 完成率文字修改 → 同步滑块 */
+function syncSlider(rateEl) {
+  var card = rateEl.closest('.project-card');
+  var txt = rateEl.textContent.replace('%','').trim();
+  var val = parseFloat(txt);
+  if (isNaN(val)) return;
+  var slider = card.querySelector('input[type=range]');
+  slider.value = val;
+  var bar = card.querySelector('.progress-bar-fill');
+  bar.style.width = Math.min(val, 100) + '%';
+  slider.nextElementSibling.textContent = val + '%';
+}
+
+/* ===== 删除项目卡片 ===== */
+function removeCard(btn) {
+  var card = btn.closest('.project-card');
+  if (document.querySelectorAll('.project-card').length <= 1) {
+    alert('至少保留一个项目');
+    return;
+  }
+  if (confirm('确认删除该项目？')) card.remove();
+}
+
+/* ===== 新增项目卡片 ===== */
+var colorList = [
+  {key:'blue',  border:'#1a6bbf', barBg:'#1a6bbf', rateColor:'#e05c00', barClass:''},
+  {key:'orange',border:'#e07b00', barBg:'#e07b00', rateColor:'#e05c00', barClass:'orange'},
+  {key:'green', border:'#2e8b57', barBg:'#2e8b57', rateColor:'#2e8b57', barClass:'green'},
+];
+var colorIdx = 0;
+function addCard() {
+  var c = colorList[colorIdx % colorList.length]; colorIdx++;
+  var html = `
+  <div class="project-card" data-color="${c.key}">
+    <div class="card-header" style="border-left-color:${c.border}">
+      <div class="project-name" contenteditable="true">新项目名称</div>
+      <div class="card-actions">
+        <button class="btn-small btn-del" onclick="removeCard(this)">删除项目</button>
+        <div class="rate-group">
+          <div class="completion-rate" style="color:${c.rateColor}" contenteditable="true"
+            oninput="syncSlider(this)">0%</div>
+          <div class="completion-label">完成率</div>
+        </div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill ${c.barClass}" style="width:0%;background:${c.barBg}"></div>
+      </div>
+    </div>
+    <div class="slider-row">
+      <label>进度条</label>
+      <input type="range" min="0" max="150" value="0" class="${c.barClass}"
+        oninput="updateProgress(this)">
+      <span class="slider-val">0%</span>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-item">
+        <div class="metric-label" contenteditable="true">月目标</div>
+        <div class="metric-value" contenteditable="true">0m³</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label" contenteditable="true">累计结算</div>
+        <div class="metric-value" contenteditable="true">0m³</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label" contenteditable="true">日均结算</div>
+        <div class="metric-value" contenteditable="true">0m³</div>
+      </div>
+      <div class="metric-item vs-item">
+        <div class="metric-label" contenteditable="true">计划 vs 实际</div>
+        <div class="vs-row">
+          <span class="vs-val" contenteditable="true" data-unit="m³">0</span>
+          <span class="vs-sep eq">＝</span>
+          <span class="vs-val" contenteditable="true" data-unit="m³">0</span>
+          <span class="vs-unit" style="font-size:16px;color:#aaa;">m³</span>
+        </div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label" contenteditable="true">次日计划量</div>
+        <div class="metric-value" contenteditable="true">0m³</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-label" contenteditable="true">达标需日均</div>
+        <div class="metric-value" contenteditable="true">-</div>
+      </div>
+    </div>
+    <div class="remark-row unreach" contenteditable="true">备注说明（点击编辑）</div>
+  </div>`;
+  document.getElementById('cards-container').insertAdjacentHTML('beforeend', html);
+}
+
+/* ===== 新增风险提示条目 ===== */
+function addRiskItem() {
+  var item = document.createElement('div');
+  item.className = 'risk-item';
+  item.contentEditable = 'true';
+  item.textContent = '新增风险提示（点击编辑）';
+  document.getElementById('risk-list').appendChild(item);
+  item.focus();
+}
+
+/* 回车键不换行，改为失焦 */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.getAttribute('contenteditable') === 'true') {
+    e.preventDefault();
+    e.target.blur();
+  }
+});
+
+/* ===== 滚轮调整数值 ===== */
+/*
+  规则：
+  - 作用于所有 .metric-value[contenteditable] 和 .vs-val[contenteditable] 元素
+  - 识别文本中的纯数字部分（支持千分位逗号、小数），单位/文字原样保留
+  - 步进：数值 >= 10000 → 步进1000；>=1000 → 步进100；>=100 → 步进10；其余 → 步进1
+  - 向上滚动 = 增加，向下滚动 = 减少，最小值为 0
+  - 含百分号的数值（完成率等）步进为1
+  - 如果内容无法识别出数字则不处理
+*/
+document.addEventListener('wheel', function(e) {
+  var el = e.target.closest('.metric-value[contenteditable], .vs-val[contenteditable]');
+  if (!el) return;
+
+  var text = el.textContent;
+  var match = text.match(/([\d,]+(\.\d+)?)/);
+  if (!match) return;
+
+  e.preventDefault();
+
+  var rawNum = match[1].replace(/,/g, '');
+  var num = parseFloat(rawNum);
+  if (isNaN(num)) return;
+
+  var hasPct = text.includes('%');
+  var step;
+  if (hasPct) {
+    step = 1;
+  } else if (num >= 1000000) {
+    step = 10000;
+  } else if (num >= 100000) {
+    step = 1000;
+  } else if (num >= 10000) {
+    step = 1000;
+  } else if (num >= 1000) {
+    step = 100;
+  } else if (num >= 100) {
+    step = 10;
+  } else {
+    step = 1;
+  }
+
+  var delta = e.deltaY < 0 ? step : -step;
+  var newNum = Math.max(0, num + delta);
+
+  var formatted;
+  if (rawNum.includes('.')) {
+    var decimals = rawNum.split('.')[1].length;
+    formatted = newNum.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  } else {
+    formatted = Math.round(newNum).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  if (el.classList.contains('vs-val')) {
+    // vs-val：纯数字内容，直接替换
+    el.textContent = formatted;
+    updateVsSep(el);
+  } else {
+    el.textContent = text.replace(match[1], formatted);
+    if (el.classList.contains('completion-rate')) {
+      syncSlider(el);
+    }
+  }
+}, { passive: false });
+
+/* ===== 计划vs实际：自动更新比较符号和颜色 ===== */
+function updateVsSep(changedVal) {
+  var row = changedVal.closest('.vs-row');
+  if (!row) return;
+  var vals = row.querySelectorAll('.vs-val');
+  var sep  = row.querySelector('.vs-sep');
+  if (vals.length < 2 || !sep) return;
+  var a = parseFloat(vals[0].textContent.replace(/,/g, '')) || 0;
+  var b = parseFloat(vals[1].textContent.replace(/,/g, '')) || 0;
+  if (a > b) {
+    sep.textContent = '＞'; sep.className = 'vs-sep gt';
+    vals[0].className = 'vs-val red'; vals[1].className = 'vs-val red';
+  } else if (a < b) {
+    sep.textContent = '＜'; sep.className = 'vs-sep lt';
+    vals[0].className = 'vs-val green'; vals[1].className = 'vs-val green';
+  } else {
+    sep.textContent = '＝'; sep.className = 'vs-sep eq';
+    vals[0].className = 'vs-val'; vals[1].className = 'vs-val';
+  }
+}
+
+/* vs-val 手动编辑后也触发更新 */
+document.addEventListener('input', function(e) {
+  if (e.target.classList.contains('vs-val')) {
+    updateVsSep(e.target);
+  }
+});
+
+
+</script>
+</body>
+</html>
